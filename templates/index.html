@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Query System</title>
+    <style>
+        .chat-footer {
+    display: flex;
+    align-items: center; /* Aligns items vertically in the center */
+    justify-content: space-between; /* Distributes space between and around content items */
+}
+#mic-icon{
+  border-radius: 50%;
+}
+
+.chat-footer button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 8px;
+    outline: none;
+}
+
+.chat-footer img {
+    height: 20px; /* Adjust size to fit the design */
+}
+
+#query {
+    flex: 1; /* Makes the input field flexible */
+    margin-right: 10px;
+    width: 80px; /* Adds spacing between input and buttons */
+}
+
+        #mic-button{
+            margin-top: -30px;
+            height: 70%;
+            
+            margin-right: -10px;
+            background-color: transparent;
+        }
+        
+        .loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+}
+
+.spinner {
+    border: 8px solid #f3f3f3; /* Light grey */
+    border-top: 8px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+        body {
+            font-family: 'Roboto', sans-serif;
+            
+            margin: 0;
+            padding: 0;
+            color: #E0E0E0;
+        }
+
+        /* Chat Icon Style */
+        .chat-icon {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #1f1f1f;
+            color: #00d1ff;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 30px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 209, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s;
+        }
+
+        .chat-icon:hover {
+            background-color: #305c66;
+            color: #121212;
+        }
+
+        /* Chat Modal Style */
+        .chat-modal {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            height: 65vh;
+            background-color: #1f1f1f;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 209, 255, 0.7);
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .chat-body {
+            padding: 10px;
+            flex-grow: 1;
+            overflow-y: auto;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            max-height: calc(65vh - 100px);
+            color: #E0E0E0;
+        }
+
+        .chat-header {
+            background-color: #6bb9cb;
+            color: #121212;
+            padding: 10px;
+            border-radius: 15px 15px 0 0;
+            text-align: center;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .chat-header img {
+            height: 30px;
+            margin-right: 10px;
+        }
+
+        .chat-header .close-btn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background: none;
+            border: none;
+            color: #121212;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .user-message, .bot-message {
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            align-self: flex-start;
+            background-color: #212121;
+            border: 1px solid #eef2f3;
+        }
+
+        .bot-message {
+            align-self: flex-end;
+            background-color: #121212;
+            border: 1px solid #edeeef;
+            color:white;
+        }
+
+        .loading {
+            font-style: italic;
+            color: white;
+            text-align: center;
+        }
+
+        .chat-footer {
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            border-top: 1px solid #333;
+            background-color: #121212;
+        }
+
+        /* Styled input */
+        input[type="text"] {
+            
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 30px;
+            border: 2px solid #333;
+            outline: none;
+            background-color: #212121;
+            color: #E0E0E0;
+        }
+
+        /* Submit button (Arrow Icon) */
+        .send-button {
+            background: none;
+            border: none;
+            position: absolute;
+            right: 20px;
+            margin-right: 48px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .send-button img {
+            border-radius: 50%;
+            width: 35px;
+            margin-top: 5px;
+            margin-right: -14px;
+            height: 35px;
+        }
+    </style>
+</head>
+<body>
+    <div id="responses"></div>
+    <div id="loader" class="loader" style="display: none;">
+        <div class="spinner"></div>
+        <p>Processing your file, please wait...</p>
+    </div>
+    <!-- Chat Icon -->
+    <button class="chat-icon" id="chat-icon" onclick="toggleChat()">💬</button>
+
+    <!-- Chat Modal -->
+    <div id="chat-modal" class="chat-modal">
+        <div class="chat-header">
+            <img src="https://capria.vc/wp-content/uploads/2023/08/Capria-Logo.svg" alt="Capria Logo">
+           
+            <button class="close-btn" onclick="toggleChat()">✖</button>
+        </div>
+        
+        <div id="chat-body" class="chat-body"></div>
+        
+        <div class="chat-footer">
+            <input type="text" id="query" placeholder="Write a message..." onkeypress="handleKey(event)">
+            <button class="send-button" onclick="submitQuery()">
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMwAAADACAMAAAB/Pny7AAAAk1BMVEX///8xQ1f///0wRFb8/PwsP1QyRVQtQVTL0NSlrLLs7e7h5Obu9PbY295BUmEjOE+rsrr19veUnaUiOk46TF34/P8AJzzBxcnc4ucjOUq6v8R8hI0ACy2TmZ55g4hkcX8AJkKJjpVqeINcZXMLLEYAIDcWMEZ0fIVNWmdea3aeo6iLlqCapa4YMkNUY25KWWsAHTxBFxDaAAAExElEQVR4nO3bbXOiOhgGYCAJQVCDBnWB2lq1+Nbq/v9fdxLRHmtBcbozJLv3NbM7u99y98k7qeMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgBGo/svzTv/4C3TVH4/+FWl6i6SfB2234o+gYb5kXCz7E/Ufr+3W/IznhXPhui5J33g8sLyneXQwLFQY1/f5LB32Bm036Cc86mSS6NIQ4rKC74Kw7Sb9SPQi3TNWpKsssri30c7/YVQcsZx3evbGiTaXaVQcsRgGevBYGMlztsz9SrJ1nlkYRbsqjcKZTBadkS6OZ9viM025e41J/7Dt6unOMtH6uqMdJ2su0teo7bY9ynOmFWFUHDVVj+d6arOoPJ4XHSrTqDx++raZhBaF0aUR1WH0NkcW6ziyaZ8T+oTUxNGTwexwXHlsKdCwuBFGrTxFspuEtsQZjL/Pzl+rUyR5rOY2asPCMy1uh9H7HLLZRlYc4UJZM6Fd4MJdv/babmkTnfHdMGpYMZbMAz12qNEFCpM7o+bc21ixz9pu7D00njUKQ3zCZsW74RcG0bpu5fyOj8e7XybnobG4Pwd8lsdfyjwIjR04XvTSvDS+2ucUbJWZu6uOSbM54IyJ4qWjL0NN7G/hqnlpTt0t/dgPg1HbDa+UJdx/MA2R4pBnA32QMKo+qjl5+mAYjclkExt3wqZOL/l4PIyaDVJ/PTXvLjSYL5/exoWQXB1wbp1xvpVHpM8jx6jLHN2UbpC955tEpikTrNSsPunTJjAoi3NxXhn9CuLp88u6nyQuZ0KqTPx4xV6TRZdRzDYBNfiMQMNeEO/y+WavYnEh5bED1iFp2hmYGsb7HAPdKMji4atKtSY3up3PP4y/2P38YY/CKOjseW1tCCly86a1GmUY/8Y0Z3CYz5KobjYpu9mB8Low+vObMOzkRin9XM5HXTUBTPPVZn/o62838sZdgdpKCzUBtNr2aqPoODXv1dRMuJrEGqw3fjrWU7NJTotmKo+LJleIOhrc2w2oPZ14MikKpU6Qq+3MbCmaHzrLwaKWVZF32w5wSW00+3fvAqsw5h+GXaM2ZipNLkj9hqU2ikxe9LA37G1UljzWu8oo5eHMNNE8fTSKKPb6awc17YWX58QP9jB+vtAwjqcfnjwSpnyb0nazq1Eai8ZHS0LYUu4MvgSMFk0LQ3y+1Nezbbe4Ho3vf9M4d7A3+T6ght0tXaBO2Gxa9tVaf8jM/hxIm3xsUh3s9LHJ3CDOsTCS3R0xXLK9/gxobP8qec5weWdjTLggm2lk1tVYtcHyzohhIll1ouPO2nBUF+ZGUVy2LB81WPAwXY0Y/1Zh+PiwDQaGD/sTNZ53N9ZLMetnkUVvNqN+zVRGiHzbT4y9O6pQ93hOrZAf41XP2OvWapXPGsuvFFZMxReos/3eyXxfuod3o24omvD0U+DrMDxNNvopsE1F0Ty6Ze7ll0ziCn2sp6Z9cm3k6i0Dl1Id66muim11Ob4y+TLoT7/YYF9RtGhRhiE+IbyQq4mhx/oGqDMp+CmMX8hXu38ZaHB+nMnHcmjbAnktnEvVwVz+m1n/C3QqTF4wIYr+xO6anPQWyfrZ9GN9c9ZtWgAAAAAAAAAAAAAAAAAAAAAAAAAAAADgX/Qf+DpEvs0PMBoAAAAASUVORK5CYII=" alt="Send">
+            </button>
+            <button id="mic-button" onclick="toggleRecording()">
+                <img src="https://i.ibb.co/9qfPzRZ/Screenshot-2024-10-25-165238.png" alt="Record" id="mic-icon" style="height: 40px; width: auto;"/>
+            </button>
+            
+        </div>
+        
+        <form id="upload-form" enctype="multipart/form-data">
+            <input type="file" id="file-input" accept=".xlsx" required>
+            <button type="submit">Upload</button>
+        </form>
+       
+    </div>
+<!--     
+    <h1>Chat with Voice Input</h1>
+    <button id="start-btn">Start Recording</button>
+    <button id="stop-btn" disabled>Stop Recording</button>
+    <p id="status">Click "Start Recording" to begin.</p>
+    <p id="response"></p> -->
+
+    <script>
+   let mediaRecorder;
+let audioChunks = [];
+let isRecording = false;
+
+const micButton = document.getElementById('mic-button');
+const micIcon = document.getElementById('mic-icon'); // Ensure this is the correct ID.
+const chatBody = document.getElementById('chat-body');
+
+// Function to toggle recording
+function toggleRecording() {
+    console.log('Toggle Recording:', isRecording ? 'Stop' : 'Start'); // Debugging statement
+    if (!isRecording) {
+        startRecording();
+    } else {
+        stopRecording();
+    }
+}
+
+// 
+// Start recording when mic is clicked
+function startRecording() {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.start();
+                isRecording = true;
+                audioChunks = [];
+                micIcon.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" fill="%23ff0000"%3E%3Ccircle cx="4" cy="4" r="4"/%3E%3C/svg%3E'; // Red dot for recording
+                console.log('Recording Started'); // Debugging statement
+
+                mediaRecorder.addEventListener('dataavailable', event => {
+                    audioChunks.push(event.data);
+                });
+
+                mediaRecorder.addEventListener('stop', () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    sendAudioToServer(audioBlob);
+                    // Additionally, stop the stream after you have done processing
+                    stream.getTracks().forEach(track => track.stop()); // Ensuring all tracks are stopped here as well
+                });
+            })
+            .catch(err => {
+                console.error('Error accessing microphone', err);
+                alert("Error accessing microphone.");
+            });
+    } else {
+        alert('getUserMedia not supported on your browser!');
+    }
+}
+
+// Stop recording
+// Stop recording
+function stopRecording() {
+    if (isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        micIcon.src = 'https://i.ibb.co/9qfPzRZ/Screenshot-2024-10-25-165238.png'; // Change icon back to original after recording
+        console.log('Recording Stopped'); // Debugging statement
+
+        // Stop all the tracks on the stream
+        if (mediaRecorder.stream) {
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        }
+    }
+}
+
+
+
+// Send audio to the server for transcription
+function sendAudioToServer(audioBlob) {
+    const formData = new FormData();
+    formData.append('audio_file', audioBlob, 'audio.wav');
+
+    fetch('/transcribe_audio', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        const transcription = data.transcription;
+        displayUserMessage(transcription);  // Display transcription in chat
+        sendQueryToChatbot(transcription);  // Send transcription to chatbot API
+    })
+    .catch(err => {
+        console.error('Error in transcription', err);
+        alert("Error during transcription.");
+    });
+}
+
+// Display user message (either typed or transcribed)
+function displayUserMessage(message) {
+    chatBody.innerHTML += `<div class="user-message">You: ${message}</div>`;
+    chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+// Send transcription to chatbot API
+function sendQueryToChatbot(query) {
+    const loadingMessage = document.createElement('div');
+    loadingMessage.className = 'loading';
+    loadingMessage.textContent = 'Loading...';
+    chatBody.appendChild(loadingMessage);
+    chatBody.scrollTop = chatBody.scrollHeight;
+
+    fetch('/api/query', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: query }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        chatBody.removeChild(loadingMessage);
+        displayWordByWord(data.response, chatBody);
+    })
+    .catch(err => {
+        console.error('Error fetching response:', err);
+        chatBody.removeChild(loadingMessage);
+        chatBody.innerHTML += `<div class="bot-message">Error fetching response. Please try again later.</div>`;
+        chatBody.scrollTop = chatBody.scrollHeight;
+    });
+}
+    </script>
+    <script>
+     
+     document.getElementById('upload-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
+
+    // Show the loader when the file upload process starts
+    document.getElementById('loader').style.display = 'block';
+
+    const fileInput = document.getElementById('file-input');
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    try {
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+        console.log(data); // Log the response
+
+        const responsesDiv = document.getElementById('responses');
+        responsesDiv.innerHTML = ''; // Clear previous responses
+
+        // Hide the loader when the process completes
+        document.getElementById('loader').style.display = 'none';
+
+        // Check if the responses exist
+        if (data.responses) {
+            // Display responses one by one
+            await displayResponses(data.responses);
+            // Provide a link to download the generated Excel file
+            if (data.download_link) {
+                responsesDiv.innerHTML += `<p><a href="/download" target="_blank">Download Generated Excel File</a></p>`;
+            }
+        } else {
+            responsesDiv.innerHTML = data.error; // Show error if any
+        }
+    } catch (error) {
+        console.error('Error:', error);
+
+        // Hide the loader in case of an error
+        document.getElementById('loader').style.display = 'none';
+
+        const responsesDiv = document.getElementById('responses');
+        responsesDiv.innerHTML = '<p>Error processing the file. Please try again.</p>';
+    }
+});
+
+
+// Function to display each response one by one
+async function displayResponses(responses) {
+    const responsesDiv = document.getElementById('responses');
+
+    for (let i = 0; i < responses.length; i++) {
+        // Display the question (you may want to show the original question here too)
+        responsesDiv.innerHTML += `<p><strong>Question ${i + 1}:</strong> ${responses[i].question}</p>`;
+        
+        // Display the response
+        responsesDiv.innerHTML += `<p><strong>Response ${i + 1}:</strong> ${responses[i].answer}</p>`;
+        
+        // Add a delay before displaying the next response
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds
+    }
+}
+
+
+        function toggleChat() {
+            const modal = document.getElementById('chat-modal');
+            const icon = document.getElementById('chat-icon');
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+            icon.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        
+        async function submitQuery() {
+        const query = document.getElementById("query").value;
+        const chatBody = document.getElementById("chat-body");
+
+        if (query) {
+          // Display user message
+          chatBody.innerHTML += `<div class="user-message">You: ${query}</div>`;
+          document.getElementById("query").value = "";
+
+          // Loading indicator
+          const loadingMessage = document.createElement("div");
+          loadingMessage.className = "loading";
+          loadingMessage.textContent = "Loading...";
+          chatBody.appendChild(loadingMessage);
+          chatBody.scrollTop = chatBody.scrollHeight;
+
+          try {
+            // Fetch response from API
+            const response = await fetch("/api/query", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ query: query }),
+            });
+
+            const data = await response.json();
+
+            // console.log(data.response, ".........");
+
+            if (data.response) {
+              // Display the response word-by-word
+              chatBody.removeChild(loadingMessage);
+              displayWordByWord(data.response, chatBody);
+            } else {
+              throw "No Response Found.";
+            }
+          } catch (error) {
+            console.error("Error fetching response:", error);
+            chatBody.removeChild(loadingMessage);
+            chatBody.innerHTML += `<div class="bot-message">${error}</div>`;
+            chatBody.scrollTop = chatBody.scrollHeight;
+          }
+        } else {
+          alert("Please enter a query!");
+        }
+      }
+    // Function to display the response word-by-word
+    function displayWordByWord(element, htmlContent) {
+        const botMessageDiv = document.createElement("div");
+        botMessageDiv.className = "bot-message";
+        htmlContent.appendChild(botMessageDiv);
+
+        botMessageDiv.innerHTML = "";
+
+        let words = element.split(" ");
+        let cursorPosition = 0;
+        let tempContent = "";
+
+        let interval = setInterval(() => {
+          if (cursorPosition < words.length) {
+            let word = words[cursorPosition];
+            tempContent += word + " ";
+
+            botMessageDiv.innerHTML = tempContent;
+
+            cursorPosition++;
+          } else {
+            botMessageDiv.innerHTML = element;
+            clearInterval(interval);
+          }
+        }, 100);
+      }
+
+    function handleKey(event) {
+        if (event.key === 'Enter') {
+            submitQuery();
+        }
+    }
+    </script>
+</body>
+</html>
