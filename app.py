@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import openai
 from flask import Flask, request, jsonify, render_template
 import re
+from flask_cors import CORS
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 from pydub import AudioSegment 
