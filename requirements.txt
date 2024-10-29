@@ -170,7 +170,7 @@ pyarrow==14.0.1
 pyarrow-hotfix==0.5
 pyasn1==0.5.1
 pyasn1-modules==0.3.0
-PyAudio==0.2.14
+
 pycparser==2.21
 pydantic==2.5.3
 pydantic_core==2.14.6
